@@ -1,0 +1,15 @@
+application: keycache
+version: 1
+runtime: python
+api_version: 1
+
+handlers:
+- url: /
+  static_files: index.html
+  upload: index.html
+
+- url: /get
+  script: keycacheserver.py
+
+- url: /set
+  script: keycacheserver.py
