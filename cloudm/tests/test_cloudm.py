@@ -1,6 +1,6 @@
 import unittest
 from cloudm import cloudmemoize
-
+import inspect
 
 class TestCloudM(unittest.TestCase):
     def test_simple_fn(self):
@@ -29,4 +29,20 @@ class TestCloudM(unittest.TestCase):
                 return self.x
 
         f = foo(3)
-        self.assertEqual(f.getx(3, y=4), 3)
+        self.assertEqual(f.getx(y=4), 3)
+
+    def test_docstring(self):
+        @cloudmemoize
+        def foobar():
+            """Doc string"""
+
+        self.assertEqual(foobar.__doc__, "Doc string")
+
+    def test_argspec(self):
+        @cloudmemoize
+        def a():
+            """foo"""
+        def b():
+            """foo"""
+
+        self.assertEqual(inspect.getargspec(a), inspect.getargspec(b))
