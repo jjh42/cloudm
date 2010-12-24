@@ -1,30 +1,34 @@
 import unittest
-from cloudm import cloudmemoize
+from cloudm import cloudmemoize,memmemoize
 import inspect
+import random
 
-class TestCloudM(unittest.TestCase):
+class MemoizeDecorator(object):
+    """Generic testing for a decorating. Use setUp to set self.decorator for testing."""
     def test_simple_fn(self):
-        @cloudmemoize
+        @self.decorator
         def foo(x):
             return x
-
         self.assertEqual(foo(3), 3)
         self.assertEqual(foo(4), 4)
 
     def test_fn_name_args(self):
-        @cloudmemoize
+        @self.decorator
         def foobar(x,y=None):
             return (x,y)
+        n = random.random()
 
-        self.assertEqual(foobar(3), (3,None))
-        self.assertEqual(foobar(3,5), (3,5))
+        self.assertEqual(foobar(n), (n,None))
+        self.assertEqual(foobar(n,5), (n,5))
+        self.assertEqual(foobar(n,5), (n,5))
+        self.assertEqual(foobar(n,5), (n,5))
 
     def test_class(self):
         class foo():
             def __init__(self, x):
                 self.x = x
             
-            @cloudmemoize
+            @self.decorator
             def getx(self,y):
                 return self.x
 
@@ -32,17 +36,28 @@ class TestCloudM(unittest.TestCase):
         self.assertEqual(f.getx(y=4), 3)
 
     def test_docstring(self):
-        @cloudmemoize
+        @self.decorator
         def foobar():
             """Doc string"""
 
         self.assertEqual(foobar.__doc__, "Doc string")
 
     def test_argspec(self):
-        @cloudmemoize
+        @self.decorator
         def a():
             """foo"""
         def b():
             """foo"""
 
         self.assertEqual(inspect.getargspec(a), inspect.getargspec(b))
+
+
+class TestCloudMemoizer(MemoizeDecorator, unittest.TestCase):
+    def setUp(self):
+        super(TestCloudMemoizer, self).setUp()
+        self.decorator = cloudmemoize
+
+class TestMemMemoizer(MemoizeDecorator, unittest.TestCase):
+    def setUp(self):
+        super(TestMemMemoizer, self).setUp()
+        self.decorator = memmemoize

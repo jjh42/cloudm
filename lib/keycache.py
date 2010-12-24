@@ -27,7 +27,7 @@ import urllib2
 import pickle
 
 
-class KeyCache():
+class KeyCache(object):
     def __init__(self,server="http://keycache.42quarks.com/"):
         self.server = server
 

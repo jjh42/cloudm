@@ -9,6 +9,8 @@ import pickle
 from decorator import decorator, FunctionMaker
 from keycache import KeyCache
 from collections import defaultdict
+from Queue import Queue
+from threading import Thread, Lock
 
 class BaseClassMemoize(object):
    """Base class for memoizing a function using a list of dictionaries.
@@ -50,10 +52,12 @@ class BaseClassMemoize(object):
        # Pickle the arguments check if they're in the cache.
        key = self.hashargs((args, xargs))
 
+       cacheindex = len(self.caches)
        if not self.cachecontrol['writeonly']: # Write to the cache.
-          for d in self.caches: # Find the first cache to have a hit.
+          for d,i in zip(self.caches, range(len(self.caches))): # Find the first cache to have a hit.
              value = d[key]
              if value != None:
+                cacheindex = i
                 cachetype = type(d)
                 break
        else:
@@ -62,11 +66,12 @@ class BaseClassMemoize(object):
        if value == None: # If the value is empty
            logging.info('Cache miss for %s', self.func.func_name)
            value = self.func(*args, **xargs)
-           # Update all the caches
-           for d in self.caches: 
-              d[key] = value
        else:
            logging.info('Cache hit (type %s) for %s', str(cachetype), self.func.func_name)
+
+       # Update any caches further up with the key.
+       for d in self.caches[0:cacheindex]: 
+              d[key] = value
        
        return value
 
@@ -99,7 +104,17 @@ def decorator_apply(dec, func):
         dict(decorated=dec(func)), undecorated=func)
 
 
-kc = KeyCache('http://keycache.appspot.com/')
+
+class ThreadWriteKeyCache(KeyCache):
+   """Wrapper around KeyCache so that writes are threaded and don't delay other code."""      
+   def set(self,key,value):
+      logging.info('Setting %s to %s in thread.' % (str(key), str(value)))
+      t = Thread(target=partial(KeyCache.set, self, key, value))
+      t.start()
+
+
+kc = ThreadWriteKeyCache('http://keycache.appspot.com/')
+
 
 def cloudmemoize(func):
     """Decorator for memoizing a function using a memory based cache and a Google App Engine based cache."""
