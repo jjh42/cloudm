@@ -42,7 +42,7 @@ The easiest way to install cloudm is using python's easy_install. You first need
 
 decorator - Library for making well-behaved decorator functions.
 
-$ easy_install setuptools decorator cloudm
+$ easy_install decorator cloudm
 
 should install everything at the command line.
 
