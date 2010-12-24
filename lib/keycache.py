@@ -25,6 +25,8 @@ import json
 import urllib
 import urllib2
 import pickle
+from threading import Thread
+from functools import partial
 
 
 class KeyCache(object):
@@ -81,3 +83,11 @@ defaultkeycache = KeyCache()
 
 get = defaultkeycache.get
 set = defaultkeycache.set
+
+
+class ThreadWriteKeyCache(KeyCache):
+   """Wrapper around KeyCache so that writes are threaded and don't delay other code."""      
+   def set(self,key,value):
+      logging.info('Setting %s to %s in thread.' % (str(key), str(value)))
+      t = Thread(target=partial(KeyCache.set, self, key, value))
+      t.start()

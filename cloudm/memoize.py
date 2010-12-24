@@ -7,10 +7,13 @@ from functools import partial
 import itertools
 import pickle
 from decorator import decorator, FunctionMaker
-from keycache import KeyCache
+from keycache import KeyCache, ThreadWriteKeyCache
 from collections import defaultdict
-from Queue import Queue
-from threading import Thread, Lock
+
+default_keycache = ThreadWriteKeyCache()
+# You can modify this to make @cloudmemoize use a different KeyCase.
+# for instance
+# memoize.default_keycase = ThreadWriteKeyCache('http://myserver/')
 
 class BaseClassMemoize(object):
    """Base class for memoizing a function using a list of dictionaries.
@@ -104,21 +107,10 @@ def decorator_apply(dec, func):
         dict(decorated=dec(func)), undecorated=func)
 
 
-
-class ThreadWriteKeyCache(KeyCache):
-   """Wrapper around KeyCache so that writes are threaded and don't delay other code."""      
-   def set(self,key,value):
-      logging.info('Setting %s to %s in thread.' % (str(key), str(value)))
-      t = Thread(target=partial(KeyCache.set, self, key, value))
-      t.start()
-
-
-kc = ThreadWriteKeyCache('http://keycache.appspot.com/')
-
-
 def cloudmemoize(func):
     """Decorator for memoizing a function using a memory based cache and a Google App Engine based cache."""
-    return decorator_apply(partial(BaseClassMemoize, caches=[defaultdict(itertools.repeat(None).next), kc]), func)
+    return decorator_apply(partial(BaseClassMemoize, caches=[defaultdict(itertools.repeat(None).next),
+                                                             default_keycache]), func)
 
 def memmemoize(func):
    """Decorator for memoizing a function using on a memory based cache."""
