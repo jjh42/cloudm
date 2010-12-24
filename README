@@ -1,0 +1,66 @@
+cloudm provides python decorators for easily memoizing functions. It allows the use a local memory cache, but more uniquely, a central server (hence the name: cloud memoization). Use of a server means that calculations can be retained across multiple runs or shared between multiple computers with a minimum of hassle.
+
+I've also hosted (on Google App Engine) a caching server free for public use. Feel free to port this python client code to other languages for similar memoization and use the same server.
+
+Memoizing is a form of caching, where the output of functions can be cached so that subsequent calls to the function are retrieved from a cache.
+
+The target of this library is to bridge the gap between calculations which are quick, and calculations which are large enough to merit writing intermediates files etc. Functions which take 10 minutes to calculate may not merit the effort of writing intermediate files but recalculating them isn't fun. With this library a 1 line decorator can ensure that you don't need to redo the calculation very often with minimal effort or setup on your behalf.
+
+To use cloudm use:
+from cloudm import memmemoize, cloudmemoize
+
+and then you can put @memmemoize or @cloudmemoize in front of any function to add memoization to that function.
+
+For instance
+@cloudmemoize 
+def longcalc(params):
+    # Do some long calculation dependent on params
+
+then 
+result = longcalc(1) # takes a long time
+result = longcalc(1) # very quick because the value is retrieved from the cache.
+
+Once the result is on a server, calls to a function, even on a different computer will be retrieved from the server cache. This means that is is straightforward to have values calculated on one computer and use them on another.
+
+cloudm provides two decorators to enable memoization.
+@memmemoize - Cache results in local memory (if python is restarted this cache is emptied).
+@cloudmemoize - Cache results to a key server (and local memory), the cached results are available until they are emptied from the keystore (usually only after multiple weeks of disuse) on any computer.
+
+CAVEATS
+When using cloudmemoize the results of your function are uploaded to a server. By default this server is http://keycache.42quarks.com/. The arguments to the function are stored only as a sha512 hash, but the output of a function is stored on the server verbatim. Although I have no plans to give out your information whily nily, I make no guarantees. If you are worried about privacy use your own server. Additionally, if someone has access to your sourcecode it would be straightforward to find which function outputs had been cached.
+
+The caching hashes are modified if the function's python hash or bytecode is changed and so fresh results will be calculated. However, if dependencies outside the function are modified (for instance, a subfunction), stale results might be returned - you can add a dummy string to your function to force a hash change or use function.cachecontrol['writeonly'] = True to force recalculated values to be cached.
+
+Values are not cached forever, if you never want to recalculate results you will need to find a different solutions.
+
+There is some overheads of the memoization. For functions with very large ouputs or that are < 1 second to calculate use of @cloudmemoize will probably slow things down (the overheads for @memmemoize is much less). There is some latency every function call to check if the result exists on the server (although writing results to cache are done in a seperate thread). If downloading the output from the server is slower than calculating it then, obviously, using @cloudmemoize is counter-productive.
+
+Memory caches are currently never emptied until python exits. This may be an issue for long-running processes.
+
+INSTALLING
+The easiest way to install cloudm is using python's easy_install. You first need to install a couple of dependencies as well.
+
+decorators - Library for making well-behaved decorator functions.
+setuptools - Better setup functions.
+
+$ easy_install setuptools decorators cloudm
+
+should install everything at the command line.
+
+
+Alternatively you can get the source from github
+$ git clone https://github.com/jjh2/cloudm.git
+$ cd cloudm
+$ python setup.py install
+
+
+BYO SERVER
+By default cloudm uses a publicly availably key cache server implemented on Google App Engine at keycache.42quarks.com for caching. You are welcome to use this server but if you desired increased privacy, control over caching etc. it is easy to use your own server.
+
+after import just set
+cloudm.default_keycache = cloudm.keycache.ThreadWriteKeyCache(myserver)
+
+The git source provides a Google appengine implementation of a key cache server. It should be straightforward to register your own appengine account and setup this application or alternatively use this source as a starting point for your own setup.
+
+SUPPORT
+https://github.com/jjh2/cloudm/issues
