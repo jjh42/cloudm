@@ -12,6 +12,11 @@ kc = keycache.KeyCache(server="http://keycache.42quarks.com/")
 kc.get(key)
 kc.set(key)
 
+Alternatively KeyCache can be used as a dictionary except that
+it never raises Exceptions for missing objects (defaultdict()).
+kc['key'] = value
+value = kc['key']
+
 KeyCache pickles and unpickles objects before saving them.
 """
 
@@ -35,6 +40,12 @@ class KeyCache():
         
     def set(self, key, value):
         self.server_rpc('set', params={'key': key}, payload=pickle.dumps(value))
+
+    def __getitem__(self, key):
+        return self.get(key)
+
+    def __setitem__(self, key, value):
+        self.set(key, value)
 
     def server_rpc(self, hook, params={}, payload=None):
         """GET or POST request to server at URL server/hook with extras dictionary of additional parameters.

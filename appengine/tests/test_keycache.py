@@ -1,7 +1,7 @@
 import unittest
 from google.appengine.api import memcache
 import keycacheserver
-import lib.keycache as kc
+import keycache as kc
 from gaetestbed import UnitTestCase, FunctionalTestCase
 import json
 from StringIO import StringIO
@@ -35,3 +35,9 @@ class TestKeyStore(FunctionalTestCase, unittest.TestCase):
         self.kcclient.set('cachehit', 'value')
         self.assertEqual(self.kcclient.get('cachehit'), 'value')
 
+    def test_dict(self):
+        """Check that cache acts like a dictionary."""
+        self.assertEqual(self.kcclient['emptykey1111'], None)
+        self.kcclient['testkey'] = 'foo';
+        self.assertEqual(self.kcclient['testkey'], 'foo')
+    
