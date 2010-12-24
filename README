@@ -38,12 +38,11 @@ There is some overheads of the memoization. For functions with very large ouputs
 Memory caches are currently never emptied until python exits. This may be an issue for long-running processes.
 
 INSTALLING
-The easiest way to install cloudm is using python's easy_install. You first need to install a couple of dependencies as well.
+The easiest way to install cloudm is using python's easy_install. You first need to install adependency.
 
-decorators - Library for making well-behaved decorator functions.
-setuptools - Better setup functions.
+decorator - Library for making well-behaved decorator functions.
 
-$ easy_install setuptools decorators cloudm
+$ easy_install setuptools decorator cloudm
 
 should install everything at the command line.
 
