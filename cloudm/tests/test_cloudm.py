@@ -2,6 +2,12 @@ import unittest
 from cloudm import cloudmemoize,memmemoize
 import inspect
 import random
+import sys
+try: # Test memoizing compiled cython modules if cython is installed.
+    import cython
+    import pyximport; pyximport.install()
+except ImportError:
+    pass
 
 class MemoizeDecorator(object):
     """Generic testing for a decorating. Use setUp to set self.decorator for testing."""
@@ -51,6 +57,13 @@ class MemoizeDecorator(object):
 
         self.assertEqual(inspect.getargspec(a), inspect.getargspec(b))
 
+    def test_cython(self):
+        """Test memoizing a cython compiled function (these don't contain python source)."""
+        # Skip test if cython is not installed.
+        if sys.modules.has_key('cython'):
+            import cython_test
+            fn = self.decorator(cython_test.testfn)
+            self.assertEqual(fn(3), 3)
 
 class TestCloudMemoizer(MemoizeDecorator, unittest.TestCase):
     def setUp(self):
@@ -61,3 +74,4 @@ class TestMemMemoizer(MemoizeDecorator, unittest.TestCase):
     def setUp(self):
         super(TestMemMemoizer, self).setUp()
         self.decorator = memmemoize
+        

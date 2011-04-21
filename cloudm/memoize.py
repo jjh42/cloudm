@@ -9,6 +9,9 @@ import pickle
 from decorator import decorator, FunctionMaker
 from keycache import KeyCache, ThreadWriteKeyCache
 from collections import defaultdict
+import sys
+import re
+import types
 
 default_keycache = ThreadWriteKeyCache()
 # You can modify this to make @cloudmemoize use a different KeyCase.
@@ -41,15 +44,34 @@ class BaseClassMemoize(object):
        cache."""
        h = hashlib.new('sha512')
        h.update('version 1') # If the version is change all hashes will change
-       # To a first approximation we just use a hash of the code given by python.
-       func_code = self.func.func_code
-       # In case another 
-       h.update(str(hash(self.func.func_code)))
-       h.update(self.func.func_code.co_filename)
-       h.update(self.func.func_code.co_code)
+       h.update(self.extrahash)
+       # We try and hash any many things as possible to make sure that false hits are not generated.
+       # However, we need to deal robustly with compiled functions which don't have the same attributes.
+       h.update(str(hash(self.func)))
+       try:
+          h.update(str(hash(self.func_code)))
+          h.update(self.func.func_code.co_filename)
+          h.update(self.func.func_code.co_code)
+          h.update(str(self.func.func_code.co_consts))
+          h.update(str(self.func.func_code.varnames))
+       except AttributeError:
+          pass # Ignore this if these properties don't exist in the function.
+               # as occurs in compiled code.
+
+       # For compiled code since we can't access the byte-code we hash using the source library.
+       self.hash_compiled_module(h)
+               
        # TODO in future we'd like to introspection to find what other things depend on this function
        # but this will do for now
        self.fnhash = h.digest()
+
+   def hash_compiled_module(self, h):
+      """Hash the compiled version of the code for cython modules since we can't track the source code."""
+      module_file = sys.modules[self.func.__module__].__file__
+      if re.match(r'.*\.so', module_file):
+         with open(module_file, 'rb') as f:
+            h.update(f.read())
+
 
    def __call__(self, *args, **xargs):
        # Pickle the arguments check if they're in the cache.
@@ -67,10 +89,10 @@ class BaseClassMemoize(object):
           value = None
           
        if value == None: # If the value is empty
-           logging.info('Cache miss for %s', self.func.func_name)
+           logging.info('Cache miss for %s', self.func.__name__)
            value = self.func(*args, **xargs)
        else:
-           logging.info('Cache hit (type %s) for %s', str(cachetype), self.func.func_name)
+           logging.info('Cache hit (type %s) for %s', str(cachetype), self.func.__name__)
 
        # Update any caches further up with the key.
        for d in self.caches[0:cacheindex]: 
@@ -102,10 +124,17 @@ def decorator_apply(dec, func):
     Decorate a function by preserving the signature even if dec
     is not a signature-preserving decorator.
     """
+    if (type(func) ==  types.BuiltinFunctionType) or (type(func) == types.BuiltinMethodType):
+       return builtin_decorator_apply(dec, func)
+    # FunctionMaker doesn't seem to work for built-ins (i.e. compiled code, it should though).      
     return FunctionMaker.create(
         func, 'return decorated(%(signature)s)',
         dict(decorated=dec(func)), undecorated=func)
 
+def builtin_decorator_apply(dec, func):
+   decfn = dec(func)
+   decfn.__doc__ = func.__doc__
+   return decfn
 
 def cloudmemoize(func):
     """Decorator for memoizing a function using a memory based cache and a Google App Engine based cache."""
