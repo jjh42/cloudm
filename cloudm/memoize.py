@@ -47,27 +47,32 @@ class BaseClassMemoize(object):
        h.update(self.extrahash)
        # We try and hash any many things as possible to make sure that false hits are not generated.
        # However, we need to deal robustly with compiled functions which don't have the same attributes.
-       h.update(str(hash(self.func)))
+       print h.hexdigest()
        try:
-          h.update(str(hash(self.func_code)))
+          h.update(str(hash(self.func.func_code)))
+          print h.hexdigest()
           h.update(self.func.func_code.co_filename)
+          print h.hexdigest()
           h.update(self.func.func_code.co_code)
+          print h.hexdigest()
           h.update(str(self.func.func_code.co_varnames))
+          print h.hexdigest()
        except AttributeError:
           pass # Ignore this if these properties don't exist in the function.
                # as occurs in compiled code.
 
        # For compiled code since we can't access the byte-code we hash using the source library.
        self.hash_compiled_module(h)
-               
        # TODO in future we'd like to introspection to find what other things depend on this function
        # but this will do for now
        self.fnhash = h.digest()
+       print self.fnhash
 
    def hash_compiled_module(self, h):
       """Hash the compiled version of the code for cython modules since we can't track the source code."""
       module_file = sys.modules[self.func.__module__].__file__
       if re.match(r'.*\.so', module_file):
+         print "Compiled module"
          with open(module_file, 'rb') as f:
             h.update(f.read())
 
