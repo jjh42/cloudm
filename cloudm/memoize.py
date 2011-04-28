@@ -52,8 +52,7 @@ class BaseClassMemoize(object):
           h.update(str(hash(self.func_code)))
           h.update(self.func.func_code.co_filename)
           h.update(self.func.func_code.co_code)
-          h.update(str(self.func.func_code.co_consts))
-          h.update(str(self.func.func_code.varnames))
+          h.update(str(self.func.func_code.co_varnames))
        except AttributeError:
           pass # Ignore this if these properties don't exist in the function.
                # as occurs in compiled code.
